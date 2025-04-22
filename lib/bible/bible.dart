@@ -146,3 +146,10 @@ class Book {
   final int count;
   Book({required this.index, required this.name, required this.count});
 }
+
+class SelectedBook {
+  int book;
+  int chapter;
+  String bookName = "";
+  SelectedBook({required this.book, required this.chapter, this.bookName = ""});
+}

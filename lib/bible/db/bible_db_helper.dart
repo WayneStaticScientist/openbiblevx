@@ -1,3 +1,6 @@
+import 'dart:developer';
+
+import 'package:open_bible_ai/bible/bible.dart';
 import 'package:path/path.dart';
 import 'package:sembast/sembast_io.dart';
 import 'package:open_bible_ai/bible/db/bible_verse.dart';
@@ -31,6 +34,14 @@ class BibleDbs {
       _db!.close();
       _db = null;
     }
+  }
+
+  static String getDefaultName(int book) {
+    return "ENGLISHNIBopenchains";
+  }
+
+  static String intoChapterColumn(int chapter) {
+    return "Chapter_$chapter";
   }
 
   Future<List<Verse>> getVerses(String dbName, String collectionName) async {

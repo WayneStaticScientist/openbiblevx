@@ -17,6 +17,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.2"
+  card_swiper:
+    dependency: "direct main"
+    description:
+      name: card_swiper
+      sha256: "21e52a144decbf0054e7cfed8bbe46fc89635e6c86b767eaccfe7d5aeba32528"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.1"
   characters:
     dependency: transitive
     description:
@@ -25,6 +33,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
+  clay_containers:
+    dependency: "direct main"
+    description:
+      name: clay_containers
+      sha256: "84039b8afd1ab168caaefee862611810add7e77a6c6d03d02788a56bd60e76c1"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.4"
   clock:
     dependency: transitive
     description:
@@ -49,6 +65,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.8"
+  dot_curved_bottom_nav:
+    dependency: "direct main"
+    description:
+      name: dot_curved_bottom_nav
+      sha256: d4a06b8aa3bd7820d538b2c685300f4eaec7d1c224c077deb7c8cdd68845aae9
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.2"
+  dot_navigation_bar:
+    dependency: "direct main"
+    description:
+      name: dot_navigation_bar
+      sha256: "753e1d91644e39beddd0a4ed7e366f37a95e38cafb601c3b7496120ae0532f63"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.2"
   fake_async:
     dependency: transitive
     description:
@@ -104,6 +136,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  font_awesome_flutter:
+    dependency: "direct main"
+    description:
+      name: font_awesome_flutter
+      sha256: d3a89184101baec7f4600d58840a764d2ef760fe1c5a20ef9e6b0e9b24a07a3a
+      url: "https://pub.dev"
+    source: hosted
+    version: "10.8.0"
   get:
     dependency: "direct main"
     description:
@@ -112,6 +152,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.7.2"
+  hidable:
+    dependency: "direct main"
+    description:
+      name: hidable
+      sha256: "72ffcc3dbaa736f072b3530711088e9da5acfda02df275287c76f88ae81877b4"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.6"
   leak_tracker:
     dependency: transitive
     description:
@@ -317,6 +365,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  sliding_clipped_nav_bar:
+    dependency: "direct main"
+    description:
+      name: sliding_clipped_nav_bar
+      sha256: f43ba9856d25515faa012f4f3763080f8a93fa6edf11a3c3ca358b8982de6411
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.1.1"
   source_span:
     dependency: transitive
     description:
@@ -397,6 +453,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
+  widget_and_text_animator:
+    dependency: "direct main"
+    description:
+      name: widget_and_text_animator
+      sha256: dafad1df89f3038643f80853e0eb3a7ffc8a0e2abd9b189bff462d9d76d41bca
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.5"
   xdg_directories:
     dependency: transitive
     description:

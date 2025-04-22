@@ -7,12 +7,14 @@ class Verse {
   int? higlightColor;
   bool isFavorite;
   String sideNote;
+  String bookName;
   Verse({
     this.id,
     required this.book,
     required this.chapter,
     required this.verse,
     required this.verseText,
+    required this.bookName,
     this.higlightColor,
     this.isFavorite = false,
     this.sideNote = "",
@@ -27,6 +29,7 @@ class Verse {
       'higlightColor': higlightColor,
       'isFavorite': isFavorite ? 1 : 0,
       'sideNote': sideNote,
+      'bookName': bookName,
     };
   }
 
@@ -35,6 +38,7 @@ class Verse {
       book = map['book'],
       chapter = map['chapter'],
       verse = map['verse'],
+      bookName = map['bookName'],
       verseText = map['verseText'],
       higlightColor = map['higlightColor'],
       isFavorite = map['isFavorite'] == 1,
