@@ -1,11 +1,11 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:open_bible_ai/bible/installer/bible_installer.dart';
-import 'package:open_bible_ai/bible/installer/methods.dart';
-import 'package:open_bible_ai/pages/main_screen.dart';
 import 'package:xml/xml.dart' as xml;
+import 'package:flutter/services.dart';
+import 'package:open_bible_ai/pages/main_screen.dart';
+import 'package:open_bible_ai/constants/constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:open_bible_ai/bible/installer/methods.dart';
+import 'package:open_bible_ai/bible/installer/bible_installer.dart';
 
 class FirstTimeLoader extends StatefulWidget {
   const FirstTimeLoader({super.key});
@@ -53,8 +53,16 @@ class _FirstTimeLoaderState extends State<FirstTimeLoader> {
         Methods.defaultBible(),
       );
       await for (final i in loader) {
-        if (mounted) {
-          if (i == 200) {
+        if (i == 200) {
+          final prefs = await SharedPreferences.getInstance();
+          prefs.setInt(AppConstants.LCHAPTER, 1);
+          prefs.setString(
+            AppConstants.LVERSETEXT,
+            BibleInstaller.getFirstVerse(),
+          );
+          prefs.setInt(AppConstants.LVERSE, 1);
+          prefs.setInt(AppConstants.LBOOK, 1);
+          if (mounted) {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (context) => MainScreen()),
             );

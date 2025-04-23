@@ -1,7 +1,7 @@
 import 'package:card_swiper/card_swiper.dart';
 import 'package:flutter/material.dart';
 import 'package:open_bible_ai/pages/slides/widget/activities_corner.dart';
-import 'package:open_bible_ai/pages/slides/widget/daily-verse_widget.dart';
+import 'package:open_bible_ai/pages/slides/widget/daily_verse_widget.dart';
 import 'package:open_bible_ai/pages/slides/widget/last_verse.dart';
 
 class MainSlide extends StatefulWidget {

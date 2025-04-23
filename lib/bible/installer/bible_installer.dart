@@ -24,7 +24,10 @@ class BibleInstaller {
     await prefs.setBool("loaded", true);
     yield 200;
   }
-
+ 
+ static String getFirstVerse()  {
+    return " In the beginning God created the heavens and the earth.";
+  }
   Future<int> addBook(
     int bookNumber,
     XmlElement element,

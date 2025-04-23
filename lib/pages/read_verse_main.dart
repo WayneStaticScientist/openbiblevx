@@ -1,17 +1,15 @@
-import 'dart:developer';
-
-import 'package:dot_curved_bottom_nav/dot_curved_bottom_nav.dart';
-import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:hidable/hidable.dart';
+import 'package:flutter/material.dart';
 import 'package:open_bible_ai/bible/bible.dart';
-import 'package:open_bible_ai/bible/db/bible_db_helper.dart';
 import 'package:open_bible_ai/bible/db/bible_verse.dart';
+import 'package:open_bible_ai/constants/constants.dart';
 import 'package:open_bible_ai/widgets/error_widget.dart';
 import 'package:open_bible_ai/widgets/loaders_widget.dart';
+import 'package:popup_menu_plus/popup_menu_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sliding_clipped_nav_bar/sliding_clipped_nav_bar.dart';
+import 'package:open_bible_ai/bible/db/bible_db_helper.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class ReadVerseMain extends StatefulWidget {
   final SelectedBook selectedBook;
@@ -30,6 +28,27 @@ class _ReadVerseMainState extends State<ReadVerseMain> {
   }
 
   @override
+  void dispose() {
+    _addToStorage();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  _addToStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setInt(AppConstants.LCHAPTER, widget.selectedBook.chapter);
+    prefs.setInt(AppConstants.LBOOK, widget.selectedBook.book);
+    prefs.setInt(AppConstants.LVERSE, 1);
+    prefs.setInt(AppConstants.LDATE, DateTime.now().millisecondsSinceEpoch);
+    prefs.setString(
+      AppConstants.LVERSETEXT,
+      _globalVerses.isNotEmpty
+          ? _globalVerses[0].verseText
+          : "The book didnt load verses",
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
@@ -43,26 +62,52 @@ class _ReadVerseMainState extends State<ReadVerseMain> {
           return NormalLoader();
         },
       ),
-      bottomNavigationBar: DotCurvedBottomNav(
-        scrollController: _scrollController,
-        margin: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        hideOnScroll: true,
-        indicatorColor: Get.theme.colorScheme.primary,
-        backgroundColor: Get.theme.colorScheme.onSurface,
-        animationDuration: const Duration(milliseconds: 300),
-        animationCurve: Curves.ease,
-        selectedIndex: 2,
-        indicatorSize: 5,
-        borderRadius: 25,
-        onTap: (index) {
-          setState(() => {});
-        },
-        items: [
-          Icon(Icons.home, color: Get.theme.colorScheme.surface),
-          Icon(Icons.notification_add, color: Get.theme.colorScheme.surface),
-          Icon(Icons.color_lens, color: Get.theme.colorScheme.surface),
-          Icon(Icons.person, color: Get.theme.colorScheme.surface),
-        ],
+      bottomNavigationBar: Container(
+        color: Get.theme.colorScheme.surface,
+        child: SafeArea(
+          child: Hidable(
+            controller: _scrollController,
+            deltaFactor: 0.1,
+            child: BottomNavigationBar(
+              backgroundColor: Get.theme.colorScheme.surface,
+              unselectedItemColor: Get.theme.colorScheme.onSurface,
+              selectedItemColor: Get.theme.colorScheme.onSurface,
+              showSelectedLabels: false,
+              type: BottomNavigationBarType.shifting,
+              items: [
+                BottomNavigationBarItem(
+                  icon: Icon(FontAwesomeIcons.chevronLeft),
+                  label: "left",
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(FontAwesomeIcons.earthAfrica),
+                  label: "language",
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(FontAwesomeIcons.arrowsUpToLine),
+                  label: "auto scroll",
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(FontAwesomeIcons.speakap),
+                  label: "Favorites",
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(FontAwesomeIcons.chevronRight),
+                  label: "Read",
+                ),
+              ],
+              currentIndex: 1,
+              onTap: (index) {
+                if (index == 0) {
+                  _prevPage();
+                }
+                if (index == 3) {
+                  _nextPage();
+                }
+              },
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -77,9 +122,13 @@ class _ReadVerseMainState extends State<ReadVerseMain> {
       BibleDbs.intoChapterColumn(book.chapter),
     );
     db.destroyDb();
+    _globalVerses = results;
+    _itemKeys = List.generate(results.length, (_) => GlobalKey());
     return results;
   }
 
+  List<Verse> _globalVerses = [];
+  List<GlobalKey> _itemKeys = [];
   Widget _buildPage(List<Verse> verses) {
     if (verses.isNotEmpty) {
       widget.selectedBook.bookName = verses[0].bookName;
@@ -97,7 +146,7 @@ class _ReadVerseMainState extends State<ReadVerseMain> {
             IconButton(onPressed: () => {}, icon: Icon(FontAwesomeIcons.heart)),
             IconButton(
               onPressed: () => {},
-              icon: Icon(FontAwesomeIcons.noteSticky),
+              icon: Icon(FontAwesomeIcons.tableColumns),
             ),
             IconButton(
               onPressed: () => Get.back(),
@@ -126,22 +175,33 @@ class _ReadVerseMainState extends State<ReadVerseMain> {
             if (index == verses.length) {
               return SizedBox(height: 150);
             }
-            return Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: RichText(
-                text: TextSpan(
-                  text: "${verses[index].verse}",
-                  style: TextStyle(
-                    fontSize: 20,
-                    color: Get.theme.colorScheme.onSurface,
-                    fontWeight: FontWeight.w400,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: verses[index].verseText,
-                      style: TextStyle(color: Get.theme.colorScheme.onSurface),
+            return KeyedSubtree(
+              key: _itemKeys[index],
+              child: InkWell(
+                onTap:
+                    () => {
+                      _showPopup(context, verses[index], _itemKeys[index]),
+                    },
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: RichText(
+                    text: TextSpan(
+                      text: "${verses[index].verse}",
+                      style: TextStyle(
+                        fontSize: 20,
+                        color: Get.theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: verses[index].verseText,
+                          style: TextStyle(
+                            color: Get.theme.colorScheme.onSurface,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             );
@@ -150,5 +210,87 @@ class _ReadVerseMainState extends State<ReadVerseMain> {
         ),
       ],
     );
+  }
+
+  _nextPage() {
+    if (widget.selectedBook.chapter <
+        Bible.mixed[widget.selectedBook.book - 1].count) {
+      widget.selectedBook.chapter++;
+      _refreshPage();
+    } else {
+      if (widget.selectedBook.book < 66) {
+        widget.selectedBook.book++;
+        widget.selectedBook.chapter = 1;
+        _refreshPage();
+      } else {
+        widget.selectedBook.book = 1;
+        widget.selectedBook.chapter = 1;
+        _refreshPage();
+      }
+    }
+  }
+
+  _prevPage() {
+    if (widget.selectedBook.chapter > 1) {
+      widget.selectedBook.chapter--;
+      _refreshPage();
+    } else {
+      if (widget.selectedBook.book > 1) {
+        widget.selectedBook.book--;
+        widget.selectedBook.chapter =
+            Bible.mixed[widget.selectedBook.book - 1].count;
+        _refreshPage();
+      } else {
+        widget.selectedBook.book = 66;
+        widget.selectedBook.chapter =
+            Bible.mixed[widget.selectedBook.book - 1].count;
+        _refreshPage();
+      }
+    }
+  }
+
+  _refreshPage() {
+    setState(() {
+      _loadVerses = _getVerses(widget.selectedBook);
+    });
+  }
+
+  _showPopup(BuildContext context, Verse verse, GlobalKey key) {
+    PopupMenu menu = PopupMenu(
+      context: context,
+      config: MenuConfig(
+        backgroundColor: Get.theme.colorScheme.primary,
+        lineColor: Get.theme.colorScheme.onPrimary,
+        highlightColor: Get.theme.colorScheme.primary,
+      ),
+      items: [
+        PopUpMenuItem(
+          title: 'highlight',
+          image: FaIcon(FontAwesomeIcons.highlighter, color: Colors.white),
+        ),
+        PopUpMenuItem(
+          title: 'Copy',
+          image: FaIcon(FontAwesomeIcons.copy, color: Colors.white),
+        ),
+        PopUpMenuItem(
+          title: 'note',
+          image: FaIcon(FontAwesomeIcons.noteSticky, color: Colors.white),
+        ),
+        PopUpMenuItem(
+          title: 'translate',
+          image: FaIcon(FontAwesomeIcons.language, color: Colors.white),
+        ),
+        PopUpMenuItem(
+          title: 'like',
+          image: FaIcon(FontAwesomeIcons.heart, color: Colors.white),
+        ),
+        PopUpMenuItem(
+          title: 'select',
+          image: FaIcon(FontAwesomeIcons.check, color: Colors.white),
+        ),
+      ],
+      onClickMenu: (e) => {},
+    );
+    menu.show(widgetKey: key);
   }
 }

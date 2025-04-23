@@ -49,6 +49,7 @@ dependencies:
   widget_and_text_animator: ^1.1.5
   hidable: ^1.0.6
   dot_curved_bottom_nav: ^0.0.2
+  popup_menu_plus: ^0.0.6
 
 dev_dependencies:
   flutter_test:

@@ -6,6 +6,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/route_manager.dart';
 import 'package:open_bible_ai/bible/bible.dart';
 import 'package:open_bible_ai/pages/read_verse_main.dart';
+import 'package:open_bible_ai/pages/slides/widget/search_delegate.dart';
 import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 
 class BooksViewSlider extends StatefulWidget {
@@ -20,14 +21,29 @@ class _BooksViewSliderState extends State<BooksViewSlider> {
   Widget build(BuildContext context) {
     return CustomScrollView(
       slivers: [
-        SliverAppBar(title: Text("Books"), centerTitle: true, floating: true),
+        SliverAppBar(
+          title: Text("Books"),
+          leading: IconButton(
+            onPressed: () {},
+            icon: Icon(FontAwesomeIcons.listCheck),
+          ),
+          centerTitle: true,
+          floating: true,
+          actions: [
+            IconButton(
+              onPressed: () {
+                showSearch(context: context, delegate: AppBookSearchDelegate(_showModal));
+              },
+              icon: Icon(FontAwesomeIcons.magnifyingGlass),
+            ),
+          ],
+        ),
         SliverToBoxAdapter(child: Center(child: Text("Holy Bible Books"))),
         SliverList.list(
           children: [
             ...Bible.oldTestament.map<Widget>((e) => _buildBookView(e)),
             ClayContainer(
               color: Get.theme.colorScheme.surface,
-
               child: ListTile(
                 leading: CircleAvatar(
                   backgroundColor: Colors.blue,
