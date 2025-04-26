@@ -1,4 +1,3 @@
-import 'dart:developer';
 
 import 'package:clay_containers/clay_containers.dart';
 import 'package:flutter/material.dart';

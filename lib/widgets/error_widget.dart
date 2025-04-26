@@ -5,6 +5,12 @@ class NormalError extends StatelessWidget {
   const NormalError({super.key, required this.errorText});
   @override
   Widget build(BuildContext context) {
-    return Center(child: Text(errorText, style: TextStyle(color: Colors.red)));
+    return Center(
+      child: Text(
+        errorText,
+        style: TextStyle(color: Colors.red),
+        textAlign: TextAlign.center,
+      ),
+    );
   }
 }

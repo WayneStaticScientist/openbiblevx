@@ -1,0 +1,11 @@
+{
+    "package": "aca.bicosatstudios.OpenMF",
+    "summary": "OpenMF is a free and open-source mobile finance app that allows users to manage their finances, track expenses, and create budgets. It is designed to be user-friendly and accessible to everyone.",
+    "website": "https://openchains.shop",
+    "extensionName": "OpenMF",
+    "extensionType": "extension",
+    "indexName": "index.html",
+    "indexType": "html",
+    "screenWidth": 1080.0,
+    "screenHeight": 1920.0
+}

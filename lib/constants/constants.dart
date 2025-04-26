@@ -11,6 +11,8 @@ class AppConstants {
   static const String LBOOK = "lastBook";
   static const String LVERSE = "lastVerse";
   static const String LDATE = "lastDate";
+  static const BibleIndexSupportedTypes = ["js", "html"];
+  static const BibleExtensionSupportedTypes = ["extension", "daily", "bible"];
   static String getDate(int milliseconds) {
     final date = DateTime.fromMillisecondsSinceEpoch(milliseconds);
     final now = DateTime.now();

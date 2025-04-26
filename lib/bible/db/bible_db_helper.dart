@@ -1,6 +1,3 @@
-import 'dart:developer';
-
-import 'package:open_bible_ai/bible/bible.dart';
 import 'package:path/path.dart';
 import 'package:sembast/sembast_io.dart';
 import 'package:open_bible_ai/bible/db/bible_verse.dart';
