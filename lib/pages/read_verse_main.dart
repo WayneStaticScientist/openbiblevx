@@ -1,13 +1,13 @@
 import 'package:get/get.dart';
-import 'package:hidable/hidable.dart';
 import 'package:flutter/material.dart';
 import 'package:open_bible_ai/bible/bible.dart';
 import 'package:open_bible_ai/constants/constants.dart';
 import 'package:open_bible_ai/bible/db/bible_verse.dart';
+import 'package:open_bible_ai/widgets/bottom_nav_main.dart';
 import 'package:open_bible_ai/widgets/error_widget.dart';
 import 'package:open_bible_ai/widgets/loaders_widget.dart';
-import 'package:open_bible_ai/widgets/verse_displays.dart';
 import 'package:open_bible_ai/utils/verse_operations.dart';
+import 'package:open_bible_ai/widgets/verse_list_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:open_bible_ai/bible/db/bible_db_helper.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -22,6 +22,7 @@ class ReadVerseMain extends StatefulWidget {
 
 class _ReadVerseMainState extends State<ReadVerseMain> {
   late Future<List<Verse>> _loadVerses;
+  bool _isSplitView = false;
   final List<Verse> _selectedVerses = [];
   bool _autoScroll = false;
   final ScrollController _scrollController = ScrollController();
@@ -66,58 +67,12 @@ class _ReadVerseMainState extends State<ReadVerseMain> {
           return NormalLoader();
         },
       ),
-      bottomNavigationBar: Container(
-        color: Get.theme.colorScheme.surface,
-        child: SafeArea(
-          child: Hidable(
-            controller: _scrollController,
-            deltaFactor: 0.1,
-            child: BottomNavigationBar(
-              backgroundColor: Get.theme.colorScheme.surface,
-              unselectedItemColor: Get.theme.colorScheme.onSurface,
-              selectedItemColor: Get.theme.colorScheme.onSurface,
-              showSelectedLabels: false,
-              type: BottomNavigationBarType.shifting,
-              items: [
-                BottomNavigationBarItem(
-                  icon: Icon(FontAwesomeIcons.chevronLeft),
-                  label: "left",
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(FontAwesomeIcons.earthAfrica),
-                  label: "language",
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(
-                    FontAwesomeIcons.arrowsUpToLine,
-                    color: _autoScroll ? Get.theme.colorScheme.primary : null,
-                  ),
-                  label: "auto scroll",
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(FontAwesomeIcons.speakap),
-                  label: "Favorites",
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(FontAwesomeIcons.chevronRight),
-                  label: "Read",
-                ),
-              ],
-              currentIndex: 1,
-              onTap: (index) {
-                if (index == 0) {
-                  _prevPage();
-                }
-                if (index == 3) {
-                  _nextPage();
-                }
-                if (index == 2) {
-                  _activateAutoScroll();
-                }
-              },
-            ),
-          ),
-        ),
+      bottomNavigationBar: BottomNavMain(
+        prevPage: _prevPage,
+        nextPage: _nextPage,
+        autoScroll: _autoScroll,
+        scrollController: _scrollController,
+        activateAutoScroll: _activateAutoScroll,
       ),
     );
   }
@@ -150,11 +105,36 @@ class _ReadVerseMainState extends State<ReadVerseMain> {
             icon: Icon(FontAwesomeIcons.chevronLeft),
           ),
           actions: [
-            IconButton(onPressed: () => {}, icon: Icon(FontAwesomeIcons.heart)),
-            IconButton(
-              onPressed: () => {},
-              icon: Icon(FontAwesomeIcons.tableColumns),
-            ),
+            _selectedVerses.isNotEmpty
+                ? IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedVerses.clear();
+                    });
+                  },
+                  icon: Icon(FontAwesomeIcons.xmark),
+                )
+                : IconButton(
+                  onPressed: () => {},
+                  icon: Icon(FontAwesomeIcons.heart),
+                ),
+            _selectedVerses.isNotEmpty
+                ? IconButton(
+                  onPressed: () {
+                    _voidShowHighLightDialog(_selectedVerses);
+                  },
+                  icon: Icon(FontAwesomeIcons.highlighter),
+                )
+                : IconButton(
+                  onPressed:
+                      () => setState(() {
+                        _isSplitView = !_isSplitView;
+                      }),
+                  icon: Icon(
+                    FontAwesomeIcons.tableColumns,
+                    color: _isSplitView ? Get.theme.colorScheme.primary : null,
+                  ),
+                ),
             IconButton(
               onPressed: () => Get.back(),
               icon: Icon(FontAwesomeIcons.ellipsis),
@@ -177,27 +157,13 @@ class _ReadVerseMainState extends State<ReadVerseMain> {
             ),
           ),
         ),
-        SliverList.builder(
-          itemBuilder: (context, index) {
-            if (index == verses.length) {
-              return SizedBox(height: 150);
-            }
-            final selected = _selectedVerses.contains(verses[index]);
-            return KeyedSubtree(
-              key: _itemKeys[index],
-              child: InkWell(
-                onTap: () {
-                  if (_selectedVerses.isNotEmpty) {
-                    _addToSelection(verses[index]);
-                  } else {
-                    _showPopup(context, verses[index], _itemKeys[index]);
-                  }
-                },
-                child: VerseWidget(verse: verses[index], selected: selected),
-              ),
-            );
-          },
-          itemCount: verses.length + 1,
+        VerseListView(
+          isSplitView: _isSplitView,
+          verses: verses,
+          selectedVerses: _selectedVerses,
+          itemKeys: _itemKeys,
+          addToSelection: _addToSelection,
+          showPopup: _showPopup,
         ),
       ],
     );
@@ -266,6 +232,7 @@ class _ReadVerseMainState extends State<ReadVerseMain> {
   void _voidShowHighLightDialog(List<Verse> verses) async {
     final respone = await VerseOperations.highLightVerse(context, verses);
     if (respone == true) {
+      _selectedVerses.clear();
       NotificationsOperations.showNotification("Verse highlighted");
       _refreshPage();
     }
