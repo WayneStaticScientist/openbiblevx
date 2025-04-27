@@ -3,7 +3,12 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 class ExtensionWebRunner extends StatefulWidget {
   final String path;
-  const ExtensionWebRunner({super.key, required this.path});
+  final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey;
+  const ExtensionWebRunner({
+    super.key,
+    required this.path,
+    required this.scaffoldMessengerKey,
+  });
   @override
   State<ExtensionWebRunner> createState() => _ExtensionWebRunnerState();
 }
@@ -20,6 +25,18 @@ class _ExtensionWebRunnerState extends State<ExtensionWebRunner> {
     controller =
         WebViewController()
           ..setJavaScriptMode(JavaScriptMode.unrestricted)
+          ..addJavaScriptChannel(
+            'OSnackBar',
+            onMessageReceived: (JavaScriptMessage message) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(message.message),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+          )
+          ..addJavaScriptChannel("OTitlebar", onMessageReceived: (message) {})
           ..setNavigationDelegate(
             NavigationDelegate(
               onProgress: (int progress) {
@@ -33,29 +50,12 @@ class _ExtensionWebRunnerState extends State<ExtensionWebRunner> {
                 return NavigationDecision.navigate;
               },
             ),
-          );
-    controller.loadFile("file:///${widget.path}");
-    _addMessageChannel();
+          )
+          ..loadFile("file:///${widget.path}");
   }
 
   @override
   Widget build(BuildContext context) {
     return WebViewWidget(controller: controller);
-  }
-
-  _addMessageChannel() {
-    controller.addJavaScriptChannel(
-      'oSnackBar',
-      onMessageReceived: (JavaScriptMessage message) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(message.message),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        });
-      },
-    );
   }
 }

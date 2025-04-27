@@ -2,14 +2,16 @@ import 'package:get/get.dart';
 import 'package:hidable/hidable.dart';
 import 'package:flutter/material.dart';
 import 'package:open_bible_ai/bible/bible.dart';
-import 'package:open_bible_ai/bible/db/bible_verse.dart';
 import 'package:open_bible_ai/constants/constants.dart';
+import 'package:open_bible_ai/bible/db/bible_verse.dart';
 import 'package:open_bible_ai/widgets/error_widget.dart';
 import 'package:open_bible_ai/widgets/loaders_widget.dart';
-import 'package:popup_menu_plus/popup_menu_plus.dart';
+import 'package:open_bible_ai/widgets/verse_displays.dart';
+import 'package:open_bible_ai/utils/verse_operations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:open_bible_ai/bible/db/bible_db_helper.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:open_bible_ai/utils/notifications_operations.dart';
 
 class ReadVerseMain extends StatefulWidget {
   final SelectedBook selectedBook;
@@ -20,6 +22,8 @@ class ReadVerseMain extends StatefulWidget {
 
 class _ReadVerseMainState extends State<ReadVerseMain> {
   late Future<List<Verse>> _loadVerses;
+  final List<Verse> _selectedVerses = [];
+  bool _autoScroll = false;
   final ScrollController _scrollController = ScrollController();
   @override
   void initState() {
@@ -84,7 +88,10 @@ class _ReadVerseMainState extends State<ReadVerseMain> {
                   label: "language",
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(FontAwesomeIcons.arrowsUpToLine),
+                  icon: Icon(
+                    FontAwesomeIcons.arrowsUpToLine,
+                    color: _autoScroll ? Get.theme.colorScheme.primary : null,
+                  ),
                   label: "auto scroll",
                 ),
                 BottomNavigationBarItem(
@@ -104,6 +111,9 @@ class _ReadVerseMainState extends State<ReadVerseMain> {
                 if (index == 3) {
                   _nextPage();
                 }
+                if (index == 2) {
+                  _activateAutoScroll();
+                }
               },
             ),
           ),
@@ -114,11 +124,8 @@ class _ReadVerseMainState extends State<ReadVerseMain> {
 
   Future<List<Verse>> _getVerses(SelectedBook book) async {
     final db = BibleDbs();
-    final pref = await SharedPreferences.getInstance();
     final results = await db.getVerses(
-      Bible.mixed[widget.selectedBook.book - 1].name +
-          (pref.getString("selected_book") ??
-              BibleDbs.getDefaultName(book.book)),
+      await BibleDbs.getDefaultName(book.book),
       BibleDbs.intoChapterColumn(book.chapter),
     );
     db.destroyDb();
@@ -175,34 +182,18 @@ class _ReadVerseMainState extends State<ReadVerseMain> {
             if (index == verses.length) {
               return SizedBox(height: 150);
             }
+            final selected = _selectedVerses.contains(verses[index]);
             return KeyedSubtree(
               key: _itemKeys[index],
               child: InkWell(
-                onTap:
-                    () => {
-                      _showPopup(context, verses[index], _itemKeys[index]),
-                    },
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: RichText(
-                    text: TextSpan(
-                      text: "${verses[index].verse}",
-                      style: TextStyle(
-                        fontSize: 20,
-                        color: Get.theme.colorScheme.onSurface,
-                        fontWeight: FontWeight.w400,
-                      ),
-                      children: [
-                        TextSpan(
-                          text: verses[index].verseText,
-                          style: TextStyle(
-                            color: Get.theme.colorScheme.onSurface,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                onTap: () {
+                  if (_selectedVerses.isNotEmpty) {
+                    _addToSelection(verses[index]);
+                  } else {
+                    _showPopup(context, verses[index], _itemKeys[index]);
+                  }
+                },
+                child: VerseWidget(verse: verses[index], selected: selected),
               ),
             );
           },
@@ -256,41 +247,63 @@ class _ReadVerseMainState extends State<ReadVerseMain> {
   }
 
   _showPopup(BuildContext context, Verse verse, GlobalKey key) {
-    PopupMenu menu = PopupMenu(
-      context: context,
-      config: MenuConfig(
-        backgroundColor: Get.theme.colorScheme.primary,
-        lineColor: Get.theme.colorScheme.onPrimary,
-        highlightColor: Get.theme.colorScheme.primary,
-      ),
-      items: [
-        PopUpMenuItem(
-          title: 'highlight',
-          image: FaIcon(FontAwesomeIcons.highlighter, color: Colors.white),
-        ),
-        PopUpMenuItem(
-          title: 'Copy',
-          image: FaIcon(FontAwesomeIcons.copy, color: Colors.white),
-        ),
-        PopUpMenuItem(
-          title: 'note',
-          image: FaIcon(FontAwesomeIcons.noteSticky, color: Colors.white),
-        ),
-        PopUpMenuItem(
-          title: 'translate',
-          image: FaIcon(FontAwesomeIcons.language, color: Colors.white),
-        ),
-        PopUpMenuItem(
-          title: 'like',
-          image: FaIcon(FontAwesomeIcons.heart, color: Colors.white),
-        ),
-        PopUpMenuItem(
-          title: 'select',
-          image: FaIcon(FontAwesomeIcons.check, color: Colors.white),
-        ),
-      ],
-      onClickMenu: (e) => {},
+    NotificationsOperations.showVersesPopupDialog(
+      context,
+      verse,
+      key: key,
+      copyAction: (verse) async {
+        await VerseOperations.copyVerse(verse);
+        if (mounted) {
+          NotificationsOperations.showNotification("Verse copied");
+        }
+      },
+      highlightAction: _voidShowHighLightDialog,
+      noteAction: (verse) => _showNoteEditor(verse),
+      selectedAction: (verse) => _addToSelection(verse),
     );
-    menu.show(widgetKey: key);
+  }
+
+  void _voidShowHighLightDialog(List<Verse> verses) async {
+    final respone = await VerseOperations.highLightVerse(context, verses);
+    if (respone == true) {
+      NotificationsOperations.showNotification("Verse highlighted");
+      _refreshPage();
+    }
+  }
+
+  _activateAutoScroll() async {
+    setState(() {
+      _autoScroll = !_autoScroll;
+    });
+    while (_autoScroll) {
+      if (!_autoScroll) return false;
+      await _scrollController.animateTo(
+        _scrollController.position.pixels + 50,
+        duration: Duration(milliseconds: 1000),
+        curve: Curves.linear,
+      );
+      await Future.delayed(Duration(milliseconds: 50));
+    }
+  }
+
+  _showNoteEditor(Verse verse) async {
+    final response = await NotificationsOperations.editVerseNote(
+      context,
+      verse,
+    );
+    if (response == true) {
+      NotificationsOperations.showNotification("Note updated");
+      _refreshPage();
+    }
+  }
+
+  _addToSelection(Verse verse) {
+    setState(() {
+      if (_selectedVerses.contains(verse)) {
+        _selectedVerses.remove(verse);
+      } else {
+        _selectedVerses.add(verse);
+      }
+    });
   }
 }

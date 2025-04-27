@@ -1,25 +1,26 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:path/path.dart';
+import 'package:sembast/sembast_io.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter_archive/flutter_archive.dart';
+import 'package:open_bible_ai/constants/constants.dart';
 import 'package:open_bible_ai/bible/installer/bible_meta_data.dart';
 import 'package:open_bible_ai/bible/installer/progress_stream.dart';
-import 'package:open_bible_ai/constants/constants.dart';
-import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:sembast/sembast_io.dart';
 
 class BibleExtensionInstaller {
   static Database? _extensionDb;
   int currentStage = 0;
   int totalStage = 0;
   static Future<File> loadImageFromExtensionsDirectory(
-    String package,
+    BibleMetaData metaData,
     String fileName,
   ) async {
-    final directory = await getApplicationDocumentsDirectory();
-    final filePath = '${directory.path}/$package/$fileName';
-    final f = File(filePath);
-    if (!(await f.exists())) throw Exception("file doesnt exists");
+    final filePath = await BibleExtensionInstaller.getMetaDataPath(metaData);
+    final f = File("$filePath/$fileName");
+    if (!(await f.exists())) {
+      throw Exception("file doesnt exists in $filePath");
+    }
     return f;
   }
 
@@ -47,7 +48,7 @@ class BibleExtensionInstaller {
         return ZipFileOperation.includeItem;
       },
     );
-    final manifestFile = File('${destinationDir.path}/open.mf');
+    final manifestFile = File('${destinationDir.path}/open.json');
     if (!(await manifestFile.exists())) {
       throw Exception("metadata file missing | extension installing stopped");
     }
@@ -69,6 +70,8 @@ class BibleExtensionInstaller {
       ),
     );
     final metaData = BibleMetaData.fromMap(manifestJson);
+    final existingMetaData = await getExtensionByMetadata(metaData);
+
     if (metaData.extensionName.isEmpty) {
       throw Exception("invalid extension name");
     }
@@ -81,7 +84,6 @@ class BibleExtensionInstaller {
     if (metaData.package.isEmpty) {
       throw Exception("invalid package name");
     }
-
     final indexFile = File('${destinationDir.path}/${metaData.indexName}');
     if (!(await indexFile.exists())) {
       throw Exception("index file missing");
@@ -89,6 +91,8 @@ class BibleExtensionInstaller {
     final iconFile = File('${destinationDir.path}/${metaData.extensionIcon}');
     if (!(await iconFile.exists())) {
       metaData.hasIcon = false;
+    } else {
+      metaData.hasIcon = true;
     }
     if (!AppConstants.BibleExtensionSupportedTypes.contains(
       metaData.extensionType.toLowerCase(),
@@ -99,6 +103,9 @@ class BibleExtensionInstaller {
       metaData.indexType.toLowerCase(),
     )) {
       throw Exception("invalid index operation");
+    }
+    if (existingMetaData != null) {
+      await deleteExtension(existingMetaData!);
     }
     final dir = await getApplicationDocumentsDirectory();
     final permanentDir = Directory(
@@ -178,6 +185,24 @@ class BibleExtensionInstaller {
     await store.add(db, metadata.toMap());
   }
 
+  static Future<String> getMetaDataPath(BibleMetaData metaData) async {
+    final directory = await getApplicationDocumentsDirectory();
+    return '${directory.path}/extensions/${metaData.package}';
+  }
+
+  Future<void> deleteExtension(BibleMetaData metadata) async {
+    final db = await openDb();
+    final store = intMapStoreFactory.store(metadata.extensionType);
+    await store.delete(
+      db,
+      finder: Finder(filter: Filter.equals('package', metadata.package)),
+    );
+    final directory = Directory(await getMetaDataPath(metadata));
+    if (await directory.exists()) {
+      await directory.delete(recursive: true);
+    }
+  }
+
   Future<List<BibleMetaData>> getExtensionsList() async {
     final db = await openDb();
     final store = intMapStoreFactory.store(
@@ -191,5 +216,18 @@ class BibleExtensionInstaller {
       extensions.add(metadata);
     }
     return extensions;
+  }
+
+  Future<BibleMetaData?> getExtensionByMetadata(BibleMetaData metaData) async {
+    final db = await openDb();
+    final store = intMapStoreFactory.store(
+      AppConstants.BibleExtensionSupportedTypes[0],
+    );
+    final finder = Finder(filter: Filter.equals('package', metaData.package));
+    final recordSnapshots = await store.find(db, finder: finder);
+    if (recordSnapshots.isEmpty) {
+      return null;
+    }
+    return BibleMetaData.fromMap(recordSnapshots.first.value);
   }
 }

@@ -1,21 +1,21 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:open_bible_ai/bible/installer/bible_meta_data.dart';
 import 'package:open_bible_ai/widgets/error_widget.dart';
-import 'package:open_bible_ai/widgets/extension_web_runner.dart';
 import 'package:open_bible_ai/widgets/loaders_widget.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:open_bible_ai/widgets/extension_web_runner.dart';
+import 'package:open_bible_ai/bible/installer/bible_meta_data.dart';
+import 'package:open_bible_ai/bible/installer/extension_installer.dart';
 
 class ExtensionsPlayer extends StatefulWidget {
   final BibleMetaData metaData;
   const ExtensionsPlayer({super.key, required this.metaData});
-
   @override
   State<ExtensionsPlayer> createState() => _ExtensionsPlayerState();
 }
 
 class _ExtensionsPlayerState extends State<ExtensionsPlayer> {
   late Future<String> _getExternalProjectDirectory;
+  final _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
   @override
   void initState() {
     super.initState();
@@ -25,6 +25,7 @@ class _ExtensionsPlayerState extends State<ExtensionsPlayer> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldMessengerKey,
       body: CustomScrollView(
         slivers: [
           widget.metaData.showAppBar == 'true'
@@ -66,9 +67,8 @@ class _ExtensionsPlayerState extends State<ExtensionsPlayer> {
   }
 
   Future<String> _openPath() async {
-    final directory = await getApplicationDocumentsDirectory();
     final filePath =
-        '${directory.path}/extensions/${widget.metaData.package}/${widget.metaData.indexName}';
+        '${await BibleExtensionInstaller.getMetaDataPath(widget.metaData)}/${widget.metaData.indexName}';
     final file = File(filePath);
     if (!(await file.exists())) {
       throw Exception("The package is corrupt | no player found ${file.path}");
@@ -77,6 +77,9 @@ class _ExtensionsPlayerState extends State<ExtensionsPlayer> {
   }
 
   Widget _runView(String path) {
-    return ExtensionWebRunner(path: path);
+    return ExtensionWebRunner(
+      path: path,
+      scaffoldMessengerKey: _scaffoldMessengerKey,
+    );
   }
 }
